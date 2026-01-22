@@ -848,7 +848,7 @@ export function PropertyMap({
       {showControls && (
         <div className="absolute top-2 right-2 space-y-1.5">
           {/* Layer Controls - Compact Design */}
-          <div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-lg p-2 space-y-2 min-w-[120px] border border-white/30 hover:bg-white/95 transition-all duration-200">
+          <div className="neumorphism neumorphism-up neumorphism-rounded bg-white/90 backdrop-blur-sm p-2 space-y-2 min-w-[120px] border border-white/30 hover:bg-white/95 transition-all duration-200">
             <div className="flex items-center space-x-2 text-xs font-medium text-gray-700 px-1">
               <Layers className="h-3 w-3 text-blue-600" />
               <span>Layers</span>
@@ -901,7 +901,7 @@ export function PropertyMap({
           </div>
 
           {/* Zoom Controls - Compact */}
-          <div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-lg p-2 border border-white/30 hover:bg-white/95 transition-all duration-200">
+          <div className="neumorphism neumorphism-up neumorphism-rounded bg-white/90 backdrop-blur-sm p-2 border border-white/30 hover:bg-white/95 transition-all duration-200">
             <div className="flex flex-col space-y-1 items-center">
               {/* Zoom In */}
               <div className="flex flex-col items-center space-y-1">

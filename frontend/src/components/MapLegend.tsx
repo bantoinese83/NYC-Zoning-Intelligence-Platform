@@ -3,7 +3,7 @@
 export function MapLegend() {
   return (
     <div className="w-full max-w-6xl mx-auto mt-6">
-      <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6">
+      <div className="neumorphism neumorphism-card neumorphism-rounded bg-white/95 backdrop-blur-sm border border-white/20 p-6">
         <div className="text-center mb-6">
           <h3 className="text-lg font-bold text-gray-900 mb-2">Map Legend</h3>
           <p className="text-sm text-gray-600">Understanding the zoning districts and landmarks on the map</p>

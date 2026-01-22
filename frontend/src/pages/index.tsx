@@ -124,15 +124,15 @@ export default function Home() {
 
             {/* Key Benefits */}
             <div className="flex flex-wrap justify-center gap-4 mb-10">
-              <div className="bg-white/60 backdrop-blur-sm rounded-full px-4 py-2 shadow-sm flex items-center space-x-2">
+              <div className="neumorphism neumorphism-up neumorphism-pill bg-white/60 backdrop-blur-sm px-4 py-2 flex items-center space-x-2">
                 <Zap className="h-4 w-4 text-blue-600" />
                 <span className="text-sm font-medium text-gray-700">Instant Analysis</span>
               </div>
-              <div className="bg-white/60 backdrop-blur-sm rounded-full px-4 py-2 shadow-sm flex items-center space-x-2">
+              <div className="neumorphism neumorphism-up neumorphism-pill bg-white/60 backdrop-blur-sm px-4 py-2 flex items-center space-x-2">
                 <Target className="h-4 w-4 text-green-600" />
                 <span className="text-sm font-medium text-gray-700">100% Accurate</span>
               </div>
-              <div className="bg-white/60 backdrop-blur-sm rounded-full px-4 py-2 shadow-sm flex items-center space-x-2">
+              <div className="neumorphism neumorphism-up neumorphism-pill bg-white/60 backdrop-blur-sm px-4 py-2 flex items-center space-x-2">
                 <TrendingUp className="h-4 w-4 text-purple-600" />
                 <span className="text-sm font-medium text-gray-700">Maximize ROI</span>
               </div>
@@ -140,7 +140,7 @@ export default function Home() {
 
             {/* Enhanced Search Bar */}
             <div className="max-w-2xl mx-auto mb-8">
-              <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-2">
+              <div className="neumorphism neumorphism-up neumorphism-rounded bg-white/80 backdrop-blur-sm shadow-xl border border-white/20 p-2">
                 <ErrorBoundary
                   fallback={
                     <ErrorFallback
@@ -166,21 +166,21 @@ export default function Home() {
             <div className="flex flex-wrap justify-center gap-3">
               <button
                 onClick={() => handlePopularAreaClick('Manhattan', 'Financial District')}
-                className="bg-white/80 backdrop-blur-sm hover:bg-white text-gray-700 px-4 py-2 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 flex items-center space-x-2"
+                className="neumorphism neumorphism-button neumorphism-rounded bg-white/80 backdrop-blur-sm text-gray-700 px-4 py-2 flex items-center space-x-2"
               >
                 <MapPin className="h-4 w-4" />
                 <span>Financial District</span>
               </button>
               <button
                 onClick={() => handlePopularAreaClick('Brooklyn', 'Williamsburg')}
-                className="bg-white/80 backdrop-blur-sm hover:bg-white text-gray-700 px-4 py-2 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 flex items-center space-x-2"
+                className="neumorphism neumorphism-button neumorphism-rounded bg-white/80 backdrop-blur-sm text-gray-700 px-4 py-2 flex items-center space-x-2"
               >
                 <MapPin className="h-4 w-4" />
                 <span>Williamsburg</span>
               </button>
               <button
                 onClick={() => handlePopularAreaClick('Queens', 'Long Island City')}
-                className="bg-white/80 backdrop-blur-sm hover:bg-white text-gray-700 px-4 py-2 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 flex items-center space-x-2"
+                className="neumorphism neumorphism-button neumorphism-rounded bg-white/80 backdrop-blur-sm text-gray-700 px-4 py-2 flex items-center space-x-2"
               >
                 <MapPin className="h-4 w-4" />
                 <span>Long Island City</span>
@@ -443,7 +443,7 @@ export default function Home() {
 
             {/* Stats Sidebar */}
             <div className="space-y-6">
-              <div className="bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl p-6 text-white">
+              <div className="neumorphism neumorphism-card neumorphism-rounded bg-gradient-to-br from-blue-600 to-indigo-600 p-6 text-white">
                 <div className="flex items-center space-x-3 mb-4">
                   <Star className="h-6 w-6" />
                   <h4 className="text-lg font-bold">Platform Stats</h4>

@@ -82,6 +82,7 @@ export function PropertySearch({
           onChange={(e) => handleInputChange(e.target.value)}
           placeholder={placeholder}
           className="pr-12 min-h-[48px] text-base"
+          neumorphism={true}
           maxLength={200}
           autoComplete="off"
           autoCorrect="off"
@@ -101,7 +102,7 @@ export function PropertySearch({
 
       {/* Search Results Dropdown */}
       {isOpen && (results.length > 0 || loading || error) && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-64 overflow-y-auto">
+        <div className="neumorphism neumorphism-up neumorphism-rounded absolute z-50 w-full mt-1 bg-white border border-gray-200 shadow-lg max-h-64 overflow-y-auto">
           {loading && (
             <div className="flex items-center justify-center py-4">
               <Loader2 className="h-4 w-4 animate-spin mr-2" />
