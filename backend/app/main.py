@@ -79,6 +79,7 @@ async def health_check():
     """
     return {
         "status": "healthy",
+        "service": "NYC Zoning Intelligence Platform API",
         "environment": settings.environment,
         "version": "0.1.0",
     }

@@ -7,7 +7,7 @@ router for the FastAPI application.
 
 from fastapi import APIRouter
 
-from . import air_rights, landmarks, properties, reports, tax_incentives, zoning
+from . import air_rights, landmarks, properties, reports, stats, tax_incentives, zoning
 
 # Create main API router
 api_router = APIRouter()
@@ -26,6 +26,8 @@ api_router.include_router(
 api_router.include_router(air_rights.router, prefix="/air-rights", tags=["air-rights"])
 
 api_router.include_router(reports.router, prefix="/reports", tags=["reports"])
+
+api_router.include_router(stats.router, prefix="", tags=["stats"])
 
 
 # Health check endpoint (could also be in a separate health router)
@@ -47,5 +49,6 @@ async def api_health_check():
             "/tax-incentives",
             "/air-rights",
             "/reports",
+            "/stats",
         ],
     }

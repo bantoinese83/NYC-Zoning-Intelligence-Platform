@@ -124,7 +124,7 @@ async def search_properties(
             state=state.upper()
         )
 
-        logger.info(f"Searching properties near: {search_request.address}")
+        logger.info(f"Starting property search for: {search_request.address}")
 
         # Perform search
         properties = property_service.search_properties_by_address(
@@ -132,13 +132,31 @@ async def search_properties(
             db,
         )
 
+        logger.info(f"Search service returned {len(properties)} properties")
+
         # Convert to response schemas
         results = []
         for prop in properties:
             try:
-                results.append(PropertyResponse.from_orm(prop))
+                # For search results, create response manually since we have custom coordinate extraction
+                result_data = {
+                    "id": prop.id,
+                    "address": prop.address,
+                    "lot_number": prop.lot_number,
+                    "block_number": prop.block_number,
+                    "zip_code": prop.zip_code,
+                    "latitude": getattr(prop, 'latitude', None),
+                    "longitude": getattr(prop, 'longitude', None),
+                    "borough": getattr(prop, 'borough', None),
+                    "neighborhood": getattr(prop, 'neighborhood', None),
+                    "building_area_sf": prop.building_area_sf,
+                    "lot_area_sf": getattr(prop, 'land_area_sf', None),
+                    "year_built": getattr(prop, 'year_built', None),
+                    "current_use": getattr(prop, 'current_use', None)
+                }
+                results.append(PropertyResponse(**result_data))
             except Exception as conversion_error:
-                logger.warning(f"Failed to convert property {prop.id} to response schema: {conversion_error}")
+                logger.warning(f"Failed to convert property {getattr(prop, 'id', 'unknown')} to response schema: {conversion_error}")
                 continue
 
         logger.info(f"Found {len(results)} properties near search location")

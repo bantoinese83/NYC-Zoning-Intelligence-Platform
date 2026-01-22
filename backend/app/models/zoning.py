@@ -2,15 +2,23 @@
 Zoning models for districts and property zoning relationships.
 """
 
+import os
 from datetime import datetime
 from uuid import uuid4
 
-from geoalchemy2 import Geometry
-from sqlalchemy import Column, String, Float, DateTime, ForeignKey, JSON
+from sqlalchemy import Column, String, Float, DateTime, ForeignKey, JSON, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from ..database import Base
+
+# Conditionally import GeoAlchemy2 based on environment
+if os.getenv("ENVIRONMENT") == "testing":
+    # For testing, use Text column to store WKT geometry strings
+    geom_column = Column(Text, nullable=True, index=True)
+else:
+    from geoalchemy2 import Geometry
+    geom_column = Column(Geometry("MULTIPOLYGON", srid=4326), nullable=True, index=True)
 
 
 class ZoningDistrict(Base):
@@ -37,7 +45,7 @@ class ZoningDistrict(Base):
     building_class = Column(String(10), nullable=True)
 
     # Spatial data - MultiPolygon geometry for district boundaries
-    geom = Column(Geometry("MULTIPOLYGON", srid=4326), nullable=True, index=True)
+    geom = geom_column
 
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

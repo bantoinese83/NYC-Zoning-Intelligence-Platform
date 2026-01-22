@@ -6,6 +6,7 @@ combining all other services.
 """
 
 import logging
+import os
 from typing import Dict, List, Optional
 from uuid import UUID
 
@@ -43,9 +44,12 @@ def create_property(property_data: PropertyCreate, session: Session) -> Property
         logger.warning("Using placeholder coordinates - geocoding not implemented")
 
     # Create geometry from coordinates
-    from geoalchemy2 import WKTElement
-
-    geom = WKTElement(f"POINT({longitude} {latitude})", srid=4326)
+    if os.getenv("ENVIRONMENT") == "testing":
+        # For testing, use WKT string directly
+        geom = f"POINT({longitude} {latitude})"
+    else:
+        from geoalchemy2 import WKTElement
+        geom = WKTElement(f"POINT({longitude} {latitude})", srid=4326)
 
     # Create property record
     property_obj = Property(
@@ -185,17 +189,88 @@ def search_properties_by_address(address: str, session: Session) -> List[Propert
             logger.warning("No properties found in database")
             return []
 
-        # In a real implementation, this would geocode the address first
-        # For now, return sample results with better logic
-        logger.warning("Address search using placeholder logic")
+        # For demo purposes, return properties regardless of address
+        # In production, this would geocode the address and find nearby properties
+        logger.info("Returning sample properties for demo (geocoding not implemented)")
 
-        # Get a random sample of properties (in production, this would use spatial queries)
-        nearby_properties = (
-            session.query(Property)
-            .order_by(Property.id)  # Deterministic ordering for testing
-            .limit(min(10, total_count))  # Don't exceed available properties
-            .all()
-        )
+        # Query with coordinates extracted from geometry
+        from sqlalchemy import text
+        from sqlalchemy.engine import Engine
+
+        # Check if we're using PostgreSQL with PostGIS or SQLite for testing
+        engine = session.get_bind()
+        is_postgresql = engine.dialect.name == 'postgresql'
+
+        if is_postgresql:
+            # Use PostGIS functions for production
+            result = session.execute(text("""
+                SELECT
+                    p.id, p.address, p.lot_number, p.block_number, p.zip_code,
+                    p.building_area_sf, p.land_area_sf, p.current_use,
+                    p.created_at, p.updated_at,
+                    ST_Y(p.geom) as latitude, ST_X(p.geom) as longitude
+                FROM properties p
+                WHERE p.geom IS NOT NULL
+                ORDER BY p.id
+                LIMIT :limit
+            """), {"limit": min(50, total_count)})
+        else:
+            # For SQLite/testing, extract coordinates from WKT representation
+            result = session.execute(text("""
+                SELECT
+                    p.id, p.address, p.lot_number, p.block_number, p.zip_code,
+                    p.building_area_sf, p.land_area_sf, p.current_use,
+                    p.created_at, p.updated_at,
+                    p.geom as geom_wkt
+                FROM properties p
+                WHERE p.geom IS NOT NULL
+                ORDER BY p.id
+                LIMIT :limit
+            """), {"limit": min(50, total_count)})
+
+        # Convert to property-like objects with coordinates
+        nearby_properties = []
+        for row in result:
+            # Create a mock property object with coordinates
+            class PropertyWithCoords:
+                def __init__(self, row, is_postgresql):
+                    self.id = row[0]
+                    self.address = row[1]
+                    self.lot_number = row[2]
+                    self.block_number = row[3]
+                    self.zip_code = row[4]
+                    self.building_area_sf = row[5]
+                    self.land_area_sf = row[6]
+                    self.current_use = row[7]
+                    self.created_at = row[8]
+                    self.updated_at = row[9]
+
+                    if is_postgresql:
+                        # Direct latitude/longitude from PostGIS
+                        self.latitude = float(row[10]) if row[10] else None
+                        self.longitude = float(row[11]) if row[11] else None
+                    else:
+                        # Parse coordinates from WKT geometry string for SQLite
+                        geom_wkt = row[10]
+                        self.latitude = None
+                        self.longitude = None
+
+                        if geom_wkt and isinstance(geom_wkt, str):
+                            # Parse WKT format like "POINT(-74.0060 40.7128)"
+                            if geom_wkt.startswith('POINT(') and geom_wkt.endswith(')'):
+                                coords = geom_wkt[6:-1].strip().split()
+                                if len(coords) >= 2:
+                                    try:
+                                        self.longitude = float(coords[0])
+                                        self.latitude = float(coords[1])
+                                    except (ValueError, IndexError):
+                                        pass
+
+            nearby_properties.append(PropertyWithCoords(row, is_postgresql))
+
+        logger.info(f"Service returning {len(nearby_properties)} properties with coordinates")
+        if nearby_properties:
+            logger.info(f"First property: {nearby_properties[0].address} at ({nearby_properties[0].latitude}, {nearby_properties[0].longitude})")
 
         logger.info(f"Found {len(nearby_properties)} properties in search results")
         return nearby_properties

@@ -6,6 +6,7 @@ import Head from 'next/head'
 import { PropertySearch } from '@/components/PropertySearch'
 import { PropertyMap } from '@/components/PropertyMap'
 import { MapLegend } from '@/components/MapLegend'
+import { useStats } from '@/hooks/useStats'
 import { ErrorBoundary, ErrorFallback } from '@/components/ErrorBoundary'
 import { Property } from '@/types'
 import { Building, MapPin, FileText, TrendingUp, Search, CheckCircle, Star, Users, Award, Zap, Shield, BarChart3, Globe, Target, Building2, Lightbulb } from 'lucide-react'
@@ -13,6 +14,9 @@ import { Building, MapPin, FileText, TrendingUp, Search, CheckCircle, Star, User
 export default function Home() {
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState('')
+
+  // Fetch real-time platform stats
+  const { data: stats, isLoading: statsLoading, error: statsError } = useStats()
 
   // Handle URL search parameters
   useEffect(() => {
@@ -31,6 +35,17 @@ export default function Home() {
     // Set the search query directly
     const query = neighborhood ? `${neighborhood}, ${areaName}` : areaName
     setSearchQuery(query)
+  }
+
+  // Format numbers for display
+  const formatNumber = (num: number): string => {
+    if (num >= 1000000) {
+      return `${(num / 1000000).toFixed(1)}M+`
+    } else if (num >= 1000) {
+      return `${(num / 1000).toFixed(1)}K+`
+    } else {
+      return num.toString()
+    }
   }
 
   return (
@@ -436,19 +451,45 @@ export default function Home() {
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
                     <span className="text-blue-100">Properties Analyzed</span>
-                    <span className="font-bold">10,000+</span>
+                    <span className="font-bold">
+                      {statsLoading ? (
+                        <div className="animate-pulse bg-blue-200/30 rounded h-6 w-16"></div>
+                      ) : statsError ? (
+                        '0'
+                      ) : (
+                        formatNumber(stats?.properties_analyzed || 0)
+                      )}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-blue-100">Tax Programs</span>
-                    <span className="font-bold">50+</span>
+                    <span className="font-bold">
+                      {statsLoading ? (
+                        <div className="animate-pulse bg-blue-200/30 rounded h-6 w-12"></div>
+                      ) : statsError ? (
+                        '0'
+                      ) : (
+                        stats?.tax_programs || 0
+                      )}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-blue-100">Zoning Districts</span>
-                    <span className="font-bold">200+</span>
+                    <span className="font-bold">
+                      {statsLoading ? (
+                        <div className="animate-pulse bg-blue-200/30 rounded h-6 w-12"></div>
+                      ) : statsError ? (
+                        '0'
+                      ) : (
+                        stats?.zoning_districts || 0
+                      )}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-blue-100">Data Accuracy</span>
-                    <span className="font-bold">100%</span>
+                    <span className="font-bold">
+                      {stats?.data_accuracy || 100}%
+                    </span>
                   </div>
                 </div>
               </div>

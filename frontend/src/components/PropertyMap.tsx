@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import mapboxgl from 'mapbox-gl'
 import { Loader2, Layers, ZoomIn, ZoomOut, Locate, AlertTriangle } from 'lucide-react'
-import { PropertyAnalysis, MapViewport } from '@/types'
+import { PropertyAnalysis, MapViewport, Property } from '@/types'
 import { Button } from './ui/Button'
+import { api } from '@/services/api'
 
 interface PropertyMapProps {
   analysis?: PropertyAnalysis
@@ -84,6 +85,9 @@ export function PropertyMap({
     landmarks: true,
     property: true
   })
+  const [generalProperties, setGeneralProperties] = useState<Property[]>([])
+  const [propertiesLoaded, setPropertiesLoaded] = useState(false)
+  const [mapLoaded, setMapLoaded] = useState(false)
 
   // Debounced viewport change handler for performance
   const debouncedViewportChange = useCallback((viewport: any) => {
@@ -110,6 +114,12 @@ export function PropertyMap({
 
     mapboxgl.accessToken = mapboxToken
 
+    // Ensure the container is empty before initializing the map
+    // Mapbox GL JS requires the container to be empty for proper initialization
+    if (mapContainer.current) {
+      mapContainer.current.innerHTML = ''
+    }
+
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/light-v11',
@@ -135,6 +145,7 @@ export function PropertyMap({
     map.current.on('load', () => {
       setIsLoading(false)
       setMapError(null)
+      setMapLoaded(true)
     })
 
     map.current.on('error', (e) => {
@@ -225,6 +236,33 @@ export function PropertyMap({
     }
   }, [debouncedViewportChange]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Fetch general properties for overview map (when no specific analysis)
+  useEffect(() => {
+    if (analysis || propertiesLoaded) return
+
+    const fetchGeneralProperties = async () => {
+      try {
+        // Fetch a sample of properties for the overview map
+        const response = await api.get('/properties/search', {
+          params: {
+            address: 'Manhattan, NY', // Get properties from Manhattan as a sample
+            limit: 50 // Limit to avoid cluttering the map
+          }
+        })
+
+        if (response.data && Array.isArray(response.data)) {
+          setGeneralProperties(response.data)
+        }
+        setPropertiesLoaded(true)
+      } catch (error) {
+        console.warn('Failed to fetch general properties for map overview:', error)
+        setPropertiesLoaded(true) // Mark as loaded even on error
+      }
+    }
+
+    fetchGeneralProperties()
+  }, [analysis, propertiesLoaded])
+
   // Add popup functionality
   useEffect(() => {
     if (!map.current) return
@@ -309,6 +347,40 @@ export function PropertyMap({
       mapInstance.getCanvas().style.cursor = ''
     })
 
+    // Add click handlers for general properties
+    mapInstance.on('click', 'general-properties', (e) => {
+      if (e.features && e.features[0]) {
+        const feature = e.features[0]
+        const properties = feature.properties
+
+        const address = properties?.address || 'Property'
+        const currentUse = properties?.current_use || 'Unknown'
+        const propertyId = properties?.id || 'N/A'
+
+        popup.setLngLat(e.lngLat)
+          .setHTML(`
+            <div class="p-4 max-w-sm">
+              <h3 class="font-bold text-lg text-gray-900 mb-2">${address}</h3>
+              <div class="space-y-2 text-sm">
+                <p><span class="font-medium">Use:</span> ${currentUse}</p>
+                <p><span class="font-medium">ID:</span> ${propertyId}</p>
+                <p class="text-xs text-gray-500 mt-2">Click to analyze this property</p>
+              </div>
+            </div>
+          `)
+          .addTo(mapInstance)
+      }
+    })
+
+    // Add hover handlers for general properties
+    mapInstance.on('mouseenter', 'general-properties', () => {
+      mapInstance.getCanvas().style.cursor = 'pointer'
+    })
+
+    mapInstance.on('mouseleave', 'general-properties', () => {
+      mapInstance.getCanvas().style.cursor = ''
+    })
+
     return () => {
       popup.remove()
     }
@@ -316,29 +388,37 @@ export function PropertyMap({
 
   // Update map with property data
   useEffect(() => {
-    if (!map.current || !analysis) return
+    if (!map.current || !mapLoaded) return
 
     const mapInstance = map.current
 
-    // Clear existing layers and sources
-    const existingLayers = [
-      'property-fill', 'property-outline',
-      'zoning-fill', 'zoning-outline',
-      'landmarks'
-    ]
+    // Clear existing property layers and sources first (only analysis-specific layers)
+    const layersToClear = ['property-fill', 'property-outline', 'property-center', 'property-center-dot']
+    if (analysis) {
+      // When showing analysis, also clear general properties
+      layersToClear.push('general-properties')
+    }
 
-    existingLayers.forEach(layer => {
-      if (mapInstance.getLayer(layer)) {
-        mapInstance.removeLayer(layer)
+    layersToClear.forEach(layerId => {
+      if (mapInstance.getLayer(layerId)) {
+        mapInstance.removeLayer(layerId)
       }
     })
 
-    const existingSources = ['property', 'zoning', 'landmarks']
-    existingSources.forEach(source => {
-      if (mapInstance.getSource(source)) {
-        mapInstance.removeSource(source)
+    const sourcesToClear = ['property']
+    if (analysis) {
+      // When showing analysis, also clear general properties source
+      sourcesToClear.push('general-properties')
+    }
+
+    sourcesToClear.forEach(sourceId => {
+      if (mapInstance.getSource(sourceId)) {
+        mapInstance.removeSource(sourceId)
       }
     })
+
+    // If we have specific analysis data, show that property
+    if (analysis) {
 
     // Add property boundary
     if (analysis.property.latitude && analysis.property.longitude) {
@@ -642,7 +722,56 @@ export function PropertyMap({
         minzoom: 13
       })
     }
-  }, [analysis, layers])
+    } // Close the analysis block
+
+    // If no specific analysis, show general property pins
+    if (!analysis && generalProperties.length > 0 && layers.property) {
+      const filteredProperties = generalProperties.filter(prop => prop.latitude && prop.longitude)
+
+      const propertyFeatures = filteredProperties
+        .map(prop => ({
+          type: 'Feature' as const,
+          geometry: {
+            type: 'Point' as const,
+            coordinates: [prop.longitude!, prop.latitude!]
+          },
+          properties: {
+            id: prop.id,
+            address: prop.address,
+            current_use: prop.current_use
+          }
+        }))
+
+      mapInstance.addSource('general-properties', {
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features: propertyFeatures
+        }
+      })
+
+      mapInstance.addLayer({
+        id: 'general-properties',
+        type: 'circle',
+        source: 'general-properties',
+        paint: {
+          'circle-radius': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            10, 2,
+            16, 6
+          ],
+          'circle-color': '#10b981',
+          'circle-stroke-width': 1,
+          'circle-stroke-color': '#ffffff',
+          'circle-opacity': 0.8,
+          'circle-stroke-opacity': 0.9
+        },
+        minzoom: 10
+      })
+    }
+  }, [analysis, layers, generalProperties, mapLoaded])
 
   const toggleLayer = (layer: keyof typeof layers) => {
     setLayers(prev => ({ ...prev, [layer]: !prev[layer] }))
@@ -674,6 +803,7 @@ export function PropertyMap({
     <div className={`relative ${className}`}>
       <div
         ref={mapContainer}
+        key="mapbox-container"
         className="w-full h-full min-h-[400px] rounded-lg overflow-hidden focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
         tabIndex={0}
         role="application"
@@ -716,95 +846,108 @@ export function PropertyMap({
       )}
 
       {showControls && (
-        <div className="absolute top-4 right-4 space-y-2">
-          {/* Layer Controls */}
-          <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl p-4 space-y-4 min-w-[240px] max-h-[70vh] overflow-y-auto border border-white/20">
-            <div className="flex items-center space-x-3 text-sm font-semibold text-gray-900">
-              <Layers className="h-5 w-5 text-blue-600" />
-              <span>Map Layers</span>
+        <div className="absolute top-2 right-2 space-y-1.5">
+          {/* Layer Controls - Compact Design */}
+          <div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-lg p-2 space-y-2 min-w-[120px] border border-white/30 hover:bg-white/95 transition-all duration-200">
+            <div className="flex items-center space-x-2 text-xs font-medium text-gray-700 px-1">
+              <Layers className="h-3 w-3 text-blue-600" />
+              <span>Layers</span>
             </div>
 
-            {/* Layer Toggles */}
-            <div className="space-y-3">
-              <label className="flex items-center justify-between text-sm cursor-pointer py-2 px-2 hover:bg-blue-50 rounded-lg transition-colors touch-manipulation focus-within:bg-blue-50 focus-within:ring-2 focus-within:ring-blue-200">
-                <div className="flex items-center space-x-3">
-                  <div className="w-4 h-4 bg-blue-500 rounded-full opacity-80"></div>
-                  <span>Property Layer</span>
+            {/* Layer Toggles - Compact */}
+            <div className="space-y-1">
+              <label className="flex items-center justify-between text-xs cursor-pointer py-1 px-2 hover:bg-blue-50 rounded transition-colors touch-manipulation focus-within:bg-blue-50">
+                <div className="flex items-center space-x-2">
+                  <div className="w-2.5 h-2.5 bg-blue-500 rounded-full opacity-80"></div>
+                  <span>Property</span>
                 </div>
                 <input
                   type="checkbox"
                   checked={layers.property}
                   onChange={() => toggleLayer('property')}
-                  className="rounded w-4 h-4 text-blue-600 focus:ring-blue-500"
-                  aria-label="Toggle property layer visibility"
+                  className="rounded w-3 h-3 text-blue-600 focus:ring-blue-500 scale-75"
+                  aria-label="Toggle property layer"
                 />
               </label>
 
-              <label className="flex items-center justify-between text-sm cursor-pointer py-2 px-2 hover:bg-green-50 rounded-lg transition-colors touch-manipulation focus-within:bg-green-50 focus-within:ring-2 focus-within:ring-green-200">
-                <div className="flex items-center space-x-3">
-                  <div className="w-4 h-4 bg-green-500 rounded"></div>
-                  <span>Zoning Districts</span>
+              <label className="flex items-center justify-between text-xs cursor-pointer py-1 px-2 hover:bg-green-50 rounded transition-colors touch-manipulation focus-within:bg-green-50">
+                <div className="flex items-center space-x-2">
+                  <div className="w-2.5 h-2.5 bg-green-500 rounded opacity-80"></div>
+                  <span>Zoning</span>
                 </div>
                 <input
                   type="checkbox"
                   checked={layers.zoning}
                   onChange={() => toggleLayer('zoning')}
-                  className="rounded w-4 h-4 text-green-600 focus:ring-green-500"
-                  aria-label="Toggle zoning districts layer visibility"
+                  className="rounded w-3 h-3 text-green-600 focus:ring-green-500 scale-75"
+                  aria-label="Toggle zoning layer"
                 />
               </label>
 
-              <label className="flex items-center justify-between text-sm cursor-pointer py-2 px-2 hover:bg-purple-50 rounded-lg transition-colors touch-manipulation focus-within:bg-purple-50 focus-within:ring-2 focus-within:ring-purple-200">
-                <div className="flex items-center space-x-3">
-                  <div className="w-4 h-4 bg-purple-500 rounded-full"></div>
+              <label className="flex items-center justify-between text-xs cursor-pointer py-1 px-2 hover:bg-purple-50 rounded transition-colors touch-manipulation focus-within:bg-purple-50">
+                <div className="flex items-center space-x-2">
+                  <div className="w-2.5 h-2.5 bg-purple-500 rounded-full opacity-80"></div>
                   <span>Landmarks</span>
                 </div>
                 <input
                   type="checkbox"
                   checked={layers.landmarks}
                   onChange={() => toggleLayer('landmarks')}
-                  className="rounded w-4 h-4 text-purple-600 focus:ring-purple-500"
-                  aria-label="Toggle landmarks layer visibility"
+                  className="rounded w-3 h-3 text-purple-600 focus:ring-purple-500 scale-75"
+                  aria-label="Toggle landmarks layer"
                 />
               </label>
             </div>
-
           </div>
 
-          {/* Zoom Controls */}
-          <div className="bg-white rounded-lg shadow-lg p-2">
-            <div className="flex flex-col space-y-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={zoomIn}
-                className="p-2 hover:bg-gray-100 focus:bg-gray-100 touch-manipulation min-h-[44px] min-w-[44px] focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                aria-label="Zoom in on map"
-                title="Zoom In (+)"
-              >
-                <ZoomIn className="h-5 w-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={zoomOut}
-                className="p-2 hover:bg-gray-100 focus:bg-gray-100 touch-manipulation min-h-[44px] min-w-[44px] focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                aria-label="Zoom out on map"
-                title="Zoom Out (-)"
-              >
-                <ZoomOut className="h-5 w-5" />
-              </Button>
-              {analysis && (
+          {/* Zoom Controls - Compact */}
+          <div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-lg p-2 border border-white/30 hover:bg-white/95 transition-all duration-200">
+            <div className="flex flex-col space-y-1 items-center">
+              {/* Zoom In */}
+              <div className="flex flex-col items-center space-y-1">
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={locateProperty}
-                  className="p-2 hover:bg-gray-100 focus:bg-gray-100 touch-manipulation min-h-[44px] min-w-[44px] focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                  aria-label="Center map on property location"
-                  title="Locate Property"
+                  onClick={zoomIn}
+                  className="p-1.5 hover:bg-gray-100 focus:bg-gray-100 touch-manipulation h-8 w-8 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                  aria-label="Zoom in on map"
+                  title="Zoom In (+)"
                 >
-                  <Locate className="h-5 w-5" />
+                  <ZoomIn className="h-3.5 w-3.5" />
                 </Button>
+                <span className="text-[10px] text-gray-600 font-medium leading-none">IN</span>
+              </div>
+
+              {/* Zoom Out */}
+              <div className="flex flex-col items-center space-y-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={zoomOut}
+                  className="p-1.5 hover:bg-gray-100 focus:bg-gray-100 touch-manipulation h-8 w-8 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                  aria-label="Zoom out on map"
+                  title="Zoom Out (-)"
+                >
+                  <ZoomOut className="h-3.5 w-3.5" />
+                </Button>
+                <span className="text-[10px] text-gray-600 font-medium leading-none">OUT</span>
+              </div>
+
+              {/* Locate Property */}
+              {analysis && (
+                <div className="flex flex-col items-center space-y-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={locateProperty}
+                    className="p-1.5 hover:bg-gray-100 focus:bg-gray-100 touch-manipulation h-8 w-8 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                    aria-label="Center map on selected property"
+                    title="Center on Property (fly to selected property location)"
+                  >
+                    <Locate className="h-3.5 w-3.5" />
+                  </Button>
+                  <span className="text-[10px] text-gray-600 font-medium leading-none">PROP</span>
+                </div>
               )}
             </div>
           </div>

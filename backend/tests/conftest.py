@@ -40,7 +40,21 @@ def test_engine(test_settings):
 @pytest.fixture(scope="session")
 def create_tables(test_engine):
     """Create all database tables for testing."""
-    Base.metadata.create_all(bind=test_engine)
+    # For SQLite testing, we need to handle GeoAlchemy2 differently
+    if test_engine.dialect.name == 'sqlite':
+        # Temporarily disable GeoAlchemy2 spatial operations for SQLite
+        import geoalchemy2
+        original_after_create = geoalchemy2.admin.dialects.sqlite.after_create
+        geoalchemy2.admin.dialects.sqlite.after_create = lambda table, bind, **kw: None
+
+        try:
+            Base.metadata.create_all(bind=test_engine)
+        finally:
+            # Restore original function
+            geoalchemy2.admin.dialects.sqlite.after_create = original_after_create
+    else:
+        Base.metadata.create_all(bind=test_engine)
+
     yield
     Base.metadata.drop_all(bind=test_engine)
 

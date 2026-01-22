@@ -2,14 +2,22 @@
 Landmark model for historic, cultural, and natural landmarks.
 """
 
+import os
 from datetime import datetime
 from uuid import uuid4
 
-from geoalchemy2 import Geometry
 from sqlalchemy import Column, String, Text, DateTime
 from sqlalchemy.dialects.postgresql import UUID
 
 from ..database import Base
+
+# Conditionally import GeoAlchemy2 based on environment
+if os.getenv("ENVIRONMENT") == "testing":
+    # For testing, use Text column to store WKT geometry strings
+    geom_column = Column(Text, nullable=True, index=True)
+else:
+    from geoalchemy2 import Geometry
+    geom_column = Column(Geometry("POINT", srid=4326), nullable=True, index=True)
 
 
 class Landmark(Base):
@@ -30,7 +38,7 @@ class Landmark(Base):
     description = Column(Text, nullable=True)
 
     # Spatial data - Point geometry for landmark location
-    geom = Column(Geometry("POINT", srid=4326), nullable=True, index=True)
+    geom = geom_column
 
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

@@ -2,15 +2,24 @@
 Property model with PostGIS geometry support.
 """
 
+import os
 from datetime import datetime
 from uuid import uuid4
 
-from geoalchemy2 import Geometry
-from sqlalchemy import Column, String, Float, DateTime
+from sqlalchemy import Column, String, Float, DateTime, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from ..database import Base
+
+# Conditionally import GeoAlchemy2 based on environment
+# For testing with SQLite, we use a simple Text column instead of Geometry
+if os.getenv("ENVIRONMENT") == "testing":
+    # For testing, use Text column to store WKT geometry strings
+    geom_column = Column(Text, nullable=True, index=True)
+else:
+    from geoalchemy2 import Geometry
+    geom_column = Column(Geometry("POINT", srid=4326), nullable=True, index=True)
 
 
 class Property(Base):
@@ -35,7 +44,7 @@ class Property(Base):
     current_use = Column(String(100), nullable=True)
 
     # Spatial data - Point geometry for property location
-    geom = Column(Geometry("POINT", srid=4326), nullable=True, index=True)
+    geom = geom_column
 
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
