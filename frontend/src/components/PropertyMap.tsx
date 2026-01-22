@@ -739,9 +739,16 @@ export function PropertyMap({
     }
     } // Close the analysis block
 
-    // If no specific analysis, show general property pins
-    if (!analysis && generalProperties.length > 0 && layers.property) {
-      const filteredProperties = generalProperties.filter(prop => prop.latitude && prop.longitude)
+    // Show general property pins when property layer is enabled
+    // (both in overview mode and analysis mode for context)
+    if (generalProperties.length > 0 && layers.property) {
+      // Filter out the currently analyzed property to avoid duplication
+      const filteredProperties = generalProperties.filter(prop => {
+        if (!prop.latitude || !prop.longitude) return false
+        // Don't show the analyzed property as a general pin
+        if (analysis?.property?.id === prop.id) return false
+        return true
+      })
 
       // Remove existing general-properties source if it exists
       if (mapInstance.getSource('general-properties')) {
