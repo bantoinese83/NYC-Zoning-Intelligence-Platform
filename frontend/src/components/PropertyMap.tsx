@@ -405,7 +405,7 @@ export function PropertyMap({
       }
     })
 
-    const sourcesToClear = ['property']
+    const sourcesToClear = ['property', 'zoning', 'landmarks']
     if (analysis) {
       // When showing analysis, also clear general properties source
       sourcesToClear.push('general-properties')
@@ -432,6 +432,11 @@ export function PropertyMap({
           [analysis.property.longitude - 0.001, analysis.property.latitude - 0.001]
         ]
       ]
+
+      // Remove existing property source if it exists
+      if (mapInstance.getSource('property')) {
+        mapInstance.removeSource('property')
+      }
 
       mapInstance.addSource('property', {
         type: 'geojson',
@@ -528,6 +533,11 @@ export function PropertyMap({
           far: district.far_base
         }
       }))
+
+      // Remove existing zoning source if it exists
+      if (mapInstance.getSource('zoning')) {
+        mapInstance.removeSource('zoning')
+      }
 
       mapInstance.addSource('zoning', {
         type: 'geojson',
@@ -642,6 +652,11 @@ export function PropertyMap({
         }
       }))
 
+      // Remove existing landmarks source if it exists
+      if (mapInstance.getSource('landmarks')) {
+        mapInstance.removeSource('landmarks')
+      }
+
       mapInstance.addSource('landmarks', {
         type: 'geojson',
         data: {
@@ -727,6 +742,11 @@ export function PropertyMap({
     // If no specific analysis, show general property pins
     if (!analysis && generalProperties.length > 0 && layers.property) {
       const filteredProperties = generalProperties.filter(prop => prop.latitude && prop.longitude)
+
+      // Remove existing general-properties source if it exists
+      if (mapInstance.getSource('general-properties')) {
+        mapInstance.removeSource('general-properties')
+      }
 
       const propertyFeatures = filteredProperties
         .map(prop => ({
