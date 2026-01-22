@@ -1,0 +1,20 @@
+{
+  "extends": [
+    "next/core-web-vitals",
+    "next/typescript"
+  ],
+  "rules": {
+    "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+    "@typescript-eslint/no-explicit-any": "off",
+    "react-hooks/exhaustive-deps": ["warn", { "additionalHooks": "(useMap|usePropertyMap)" }],
+    "prefer-const": "error",
+    "no-var": "error",
+    "react/no-unescaped-entities": "error"
+  },
+  "ignorePatterns": [
+    "node_modules/",
+    ".next/",
+    "out/",
+    "build/"
+  ]
+}

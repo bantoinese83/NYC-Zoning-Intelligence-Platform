@@ -1,0 +1,99 @@
+# Render Infrastructure as Code Configuration
+# This file defines the services and their configurations for deployment on Render
+
+services:
+  # PostgreSQL Database with PostGIS
+  - type: pserv
+    name: zoning-db
+    env: postgres
+    plan: starter
+    # PostGIS will be enabled via init script
+    disk:
+      name: zoning-data
+      mountPath: /var/lib/postgresql/data
+      sizeGB: 10
+    envVars:
+      - key: POSTGRES_DB
+        value: zoning_platform
+      - key: POSTGRES_USER
+        value: zoning_user
+      - key: POSTGRES_PASSWORD
+        generateValue: true
+      - key: PGDATA
+        value: /var/lib/postgresql/data/pgdata
+
+  # FastAPI Backend Service
+  - type: web
+    name: zoning-api
+    env: python
+    plan: starter
+    buildCommand: |
+      pip install -r requirements.txt
+      python -c "import alembic.config; alembic.config.main(argv=['upgrade', 'head'])"
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        fromService:
+          type: pserv
+          name: zoning-db
+          property: connectionString
+      - key: ENVIRONMENT
+        value: production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: MAPBOX_TOKEN
+        sync: false # Set in Render dashboard
+      - key: OPENAI_API_KEY
+        sync: false # Set in Render dashboard
+      - key: CORS_ORIGINS
+        value: https://zoning-platform.onrender.com
+      - key: LOG_LEVEL
+        value: INFO
+      - key: PYTHONPATH
+        value: /opt/render/project/src/backend
+    healthCheckPath: /health
+    disk:
+      name: backend-logs
+      mountPath: /opt/render/project/logs
+      sizeGB: 1
+
+  # Static Site for Frontend (Optional - can also deploy to Vercel)
+  # Uncomment if you want to serve frontend from Render
+  # - type: web
+  #   name: zoning-frontend
+  #   env: static
+  #   plan: starter
+  #   buildCommand: |
+  #     cd frontend
+  #     npm install
+  #     npm run build
+  #   staticPublishPath: frontend/out
+  #   envVars:
+  #     - key: NEXT_PUBLIC_API_URL
+  #       fromService:
+  #         type: web
+  #         name: zoning-api
+  #         property: host
+
+# Environment groups for shared configuration
+envVarGroups:
+  - name: common-env
+    envVars:
+      - key: TZ
+        value: America/New_York
+      - key: PYTHONUNBUFFERED
+        value: "1"
+
+# Cron jobs for maintenance (optional)
+# - type: cron
+#   name: database-backup
+#   schedule: "0 2 * * *" # Daily at 2 AM
+#   command: |
+#     pg_dump $DATABASE_URL > backup.sql
+#     # Upload to cloud storage here
+
+# - type: cron
+#   name: log-rotation
+#   schedule: "0 3 * * *" # Daily at 3 AM
+#   command: |
+#     find /opt/render/project/logs -name "*.log" -mtime +7 -delete
