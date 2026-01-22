@@ -443,17 +443,19 @@ export default function Home() {
 
             {/* Stats Sidebar */}
             <div className="space-y-6">
-              <div className="neumorphism neumorphism-card neumorphism-rounded bg-gradient-to-br from-blue-600 to-indigo-600 p-6 text-white">
-                <div className="flex items-center space-x-3 mb-4">
-                  <Star className="h-6 w-6" />
-                  <h4 className="text-lg font-bold">Platform Stats</h4>
+              <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-700 p-6 text-white shadow-2xl rounded-2xl border border-blue-500/20">
+                <div className="flex items-center space-x-3 mb-6">
+                  <div className="p-2 bg-white/10 rounded-lg">
+                    <Star className="h-5 w-5 text-yellow-300" />
+                  </div>
+                  <h4 className="text-xl font-bold">Platform Stats</h4>
                 </div>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-blue-100">Properties Analyzed</span>
-                    <span className="font-bold">
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center py-2 border-b border-white/10">
+                    <span className="text-blue-100 font-medium">Properties Analyzed</span>
+                    <span className="text-2xl font-bold text-white">
                       {statsLoading ? (
-                        <div className="animate-pulse bg-blue-200/30 rounded h-6 w-16"></div>
+                        <div className="animate-pulse bg-white/20 rounded h-7 w-20"></div>
                       ) : statsError ? (
                         '0'
                       ) : (
@@ -461,11 +463,11 @@ export default function Home() {
                       )}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-blue-100">Tax Programs</span>
-                    <span className="font-bold">
+                  <div className="flex justify-between items-center py-2 border-b border-white/10">
+                    <span className="text-blue-100 font-medium">Tax Programs</span>
+                    <span className="text-2xl font-bold text-white">
                       {statsLoading ? (
-                        <div className="animate-pulse bg-blue-200/30 rounded h-6 w-12"></div>
+                        <div className="animate-pulse bg-white/20 rounded h-7 w-16"></div>
                       ) : statsError ? (
                         '0'
                       ) : (
@@ -473,11 +475,11 @@ export default function Home() {
                       )}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-blue-100">Zoning Districts</span>
-                    <span className="font-bold">
+                  <div className="flex justify-between items-center py-2 border-b border-white/10">
+                    <span className="text-blue-100 font-medium">Zoning Districts</span>
+                    <span className="text-2xl font-bold text-white">
                       {statsLoading ? (
-                        <div className="animate-pulse bg-blue-200/30 rounded h-6 w-12"></div>
+                        <div className="animate-pulse bg-white/20 rounded h-7 w-16"></div>
                       ) : statsError ? (
                         '0'
                       ) : (
@@ -485,9 +487,9 @@ export default function Home() {
                       )}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-blue-100">Data Accuracy</span>
-                    <span className="font-bold">
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-blue-100 font-medium">Data Accuracy</span>
+                    <span className="text-2xl font-bold text-green-300">
                       {stats?.data_accuracy || 100}%
                     </span>
                   </div>
