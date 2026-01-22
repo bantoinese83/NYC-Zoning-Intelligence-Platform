@@ -1,8 +1,9 @@
 'use client'
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
-import { Search, MapPin, Loader2, AlertTriangle } from 'lucide-react'
+import { Search, MapPin, Loader2, AlertTriangle, Sparkles, Database } from 'lucide-react'
 import { useSearchProperties } from '@/hooks/useSearchProperties'
+import { useAIPropertyAnalysis } from '@/hooks/useAIAnalysis'
 import { Property } from '@/types'
 import { Input } from './ui/Input'
 
@@ -11,18 +12,21 @@ interface PropertySearchProps {
   placeholder?: string
   className?: string
   initialQuery?: string
+  enableAISearch?: boolean
 }
 
 export function PropertySearch({
   onPropertySelect,
   placeholder = "Enter NYC property address...",
   className = "",
-  initialQuery = ""
+  initialQuery = "",
+  enableAISearch = true
 }: PropertySearchProps) {
   const [query, setQuery] = useState('')
   const hasSetInitialQuery = useRef(false)
   const [isOpen, setIsOpen] = useState(false)
   const [searchParams, setSearchParams] = useState<{address: string, city: string, state: string} | null>(null)
+  const [useAISearch, setUseAISearch] = useState(false)
 
   // Set initial query when it changes
   React.useEffect(() => {
@@ -33,6 +37,7 @@ export function PropertySearch({
   }, [initialQuery])
 
   const { data: results = [], isLoading: loading, error } = useSearchProperties(searchParams)
+  const aiAnalysis = useAIPropertyAnalysis(useAISearch ? query : null)
 
   // Debounced search
   useEffect(() => {
@@ -73,6 +78,51 @@ export function PropertySearch({
     }
   }
 
+  // Handle AI search results
+  useEffect(() => {
+    if (aiAnalysis.analysisData && useAISearch) {
+      // Convert AI PropertyData to Property format
+      const aiProperty: Property = {
+        id: `ai-${Date.now()}`, // Generate temporary ID for AI results
+        address: aiAnalysis.analysisData.property.address,
+        lot_number: '',
+        block_number: '',
+        zip_code: '',
+        building_area_sf: 0,
+        land_area_sf: aiAnalysis.analysisData.property.lotArea,
+        current_use: aiAnalysis.analysisData.property.buildingClass,
+        latitude: aiAnalysis.analysisData.property.coordinates.lat,
+        longitude: aiAnalysis.analysisData.property.coordinates.lng,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }
+
+      onPropertySelect(aiProperty)
+      setIsOpen(false)
+    }
+  }, [aiAnalysis.analysisData, useAISearch, onPropertySelect])
+
+  const handleSearch = async () => {
+    if (query.length < 3) return
+
+    if (useAISearch) {
+      // Use AI search
+      try {
+        await aiAnalysis.performFullAnalysis()
+      } catch (error) {
+        console.error('AI Search failed:', error)
+      }
+    } else {
+      // Use database search
+      setSearchParams({
+        address: query,
+        city: 'New York',
+        state: 'NY'
+      })
+      setIsOpen(true)
+    }
+  }
+
   return (
     <div className={`relative ${className}`}>
       <div className="relative">
@@ -89,19 +139,45 @@ export function PropertySearch({
           autoCapitalize="words"
           spellCheck="false"
           inputMode="text"
-          onFocus={() => query.length >= 3 && setIsOpen(true)}
+          onFocus={() => query.length >= 3 && !useAISearch && setIsOpen(true)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              handleSearch()
+            }
+          }}
         />
-        <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-          {loading ? (
-            <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
-          ) : (
-            <Search className="h-4 w-4 text-gray-400" />
+        <div className="absolute inset-y-0 right-0 flex items-center pr-3 space-x-2">
+          {enableAISearch && (
+            <button
+              onClick={() => setUseAISearch(!useAISearch)}
+              className={`p-1 rounded transition-colors ${
+                useAISearch
+                  ? 'text-purple-600 bg-purple-100'
+                  : 'text-gray-400 hover:text-gray-600'
+              }`}
+              title={useAISearch ? 'Using AI Search (Powered by Gemini)' : 'Switch to AI Search'}
+            >
+              {useAISearch ? <Sparkles className="h-4 w-4" /> : <Database className="h-4 w-4" />}
+            </button>
           )}
+          <button
+            onClick={handleSearch}
+            disabled={query.length < 3}
+            className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Search"
+          >
+            {loading || aiAnalysis.isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Search className="h-4 w-4" />
+            )}
+          </button>
         </div>
       </div>
 
       {/* Search Results Dropdown */}
-      {isOpen && (results.length > 0 || loading || error) && (
+      {isOpen && (results.length > 0 || loading || error || aiAnalysis.error) && (
         <div className="neumorphism neumorphism-up neumorphism-rounded absolute z-50 w-full mt-1 bg-white border border-gray-200 shadow-lg max-h-64 overflow-y-auto">
           {loading && (
             <div className="flex items-center justify-center py-4">
@@ -110,25 +186,27 @@ export function PropertySearch({
             </div>
           )}
 
-          {error && (
+          {(error || aiAnalysis.error) && (
             <div className="px-4 py-3 text-sm text-red-600 bg-red-50 border-b">
               <div className="flex items-start space-x-2">
                 <AlertTriangle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
                 <div>
-                  <div className="font-medium">{error.message || 'Search failed'}</div>
-                  {'code' in error && error.code === 'NETWORK_ERROR' && (
+                  <div className="font-medium">
+                    {error?.message || aiAnalysis.error?.message || 'Search failed'}
+                  </div>
+                  {error && 'code' in error && error.code === 'NETWORK_ERROR' && (
                     <div className="text-xs text-red-500 mt-1">
                       Check your internet connection and try again.
                     </div>
                   )}
-                  {'code' in error && error.code === 'VALIDATION_ERROR' && 'details' in error && error.details ? (
+                  {error && 'code' in error && error.code === 'VALIDATION_ERROR' && 'details' in error && error.details ? (
                     <div className="text-xs text-red-500 mt-1">
                       {Object.entries(error.details as Record<string, unknown>).map(([field, message]: [string, unknown]) => (
                         <div key={field}>{field}: {String(message)}</div>
                       ))}
                     </div>
                   ) : null}
-                  {process.env.NODE_ENV === 'development' && 'details' in error && error.details ? (
+                  {process.env.NODE_ENV === 'development' && error && 'details' in error && error.details ? (
                     <details className="mt-2">
                       <summary className="cursor-pointer text-xs opacity-75">Technical Details</summary>
                       <pre className="text-xs mt-1 whitespace-pre-wrap">

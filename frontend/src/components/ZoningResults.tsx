@@ -80,7 +80,7 @@ export function ZoningResults({ analysis, className = "" }: ZoningResultsProps) 
           <div>
             <h4 className="font-medium mb-3">Zoning Districts</h4>
             <div className="space-y-3">
-              {zoning.zoning_districts.map((district: any, index: number) => (
+              {zoning.zoning_districts?.map((district: any, index: number) => (
                 <div key={index} className="border rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-medium">{district.district_code}</span>
@@ -255,11 +255,11 @@ export function ZoningResults({ analysis, className = "" }: ZoningResultsProps) 
                   <div>
                     <div className="font-medium">{landmark.name}</div>
                     <div className="text-sm text-gray-500 capitalize">
-                      {landmark.landmark_type}
+                      {(landmark as any).landmark_type || landmark.type}
                     </div>
                   </div>
                   <Badge variant="outline">
-                    {landmark.distance_ft} ft
+                    {(landmark as any).distance_ft || landmark.distance} ft
                   </Badge>
                 </div>
               ))}

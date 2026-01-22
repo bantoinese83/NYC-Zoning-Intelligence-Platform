@@ -236,7 +236,7 @@ export default function AnalysisPage() {
                         <div key={index} className="flex items-center justify-between">
                           <span className="text-sm">{landmark.name}</span>
                           <span className="text-sm text-gray-500">
-                            {landmark.distance_ft} ft
+                            {(landmark as any).distance_ft || landmark.distance} ft
                           </span>
                         </div>
                       ))}

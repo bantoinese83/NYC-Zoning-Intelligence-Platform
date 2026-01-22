@@ -65,7 +65,7 @@ export function ReportGenerator({
             <h4 className="font-medium mb-2">Report Preview</h4>
             <div className="text-sm text-gray-600 space-y-1">
               <div>Property: {analysis.property.address}</div>
-              <div>Zoning Districts: {analysis.zoning.zoning_districts.length}</div>
+              <div>Zoning Districts: {analysis.zoning.zoning_districts?.length || 0}</div>
               <div>Tax Incentives: {analysis.tax_incentives.length} programs</div>
               <div>Nearby Landmarks: {analysis.nearby_landmarks.length}</div>
               <div>Air Rights: {analysis.air_rights.unused_far?.toFixed(2)} unused FAR</div>

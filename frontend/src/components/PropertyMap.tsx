@@ -512,7 +512,7 @@ export function PropertyMap({
     }
 
     // Add zoning districts
-    if (layers.zoning && analysis.zoning.zoning_districts.length > 0) {
+    if (layers.zoning && analysis.zoning.zoning_districts && analysis.zoning.zoning_districts.length > 0) {
       const zoningFeatures = analysis.zoning.zoning_districts.map((district: any) => ({
         type: 'Feature' as const,
         geometry: {
@@ -646,8 +646,8 @@ export function PropertyMap({
         },
         properties: {
           name: landmark.name,
-          type: landmark.landmark_type,
-          distance: landmark.distance_ft,
+          type: (landmark as any).landmark_type || landmark.type,
+          distance: (landmark as any).distance_ft || landmark.distance,
           description: landmark.description
         }
       }))

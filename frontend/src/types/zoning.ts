@@ -35,6 +35,17 @@ export interface ZoningAnalysis {
   total_buildable_area_sf: number
   max_height_ft?: number
   air_rights_available: boolean
+  // Additional properties for component compatibility
+  total_far_base?: number
+  total_far_with_bonuses?: number
+  total_lot_area_sf?: number
+  total_used_area_sf?: number
+  zoning_summary?: string
+  setback_requirements?: {
+    front_ft?: number
+    side_ft?: number
+    rear_ft?: number
+  }
 }
 
 export interface FARCalculatorRequest {
