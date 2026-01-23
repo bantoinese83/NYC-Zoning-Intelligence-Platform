@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import type { AppProps } from 'next/app'
+import Head from 'next/head'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import '@/styles/globals.css'
@@ -41,6 +42,10 @@ export default function App({ Component, pageProps }: AppProps) {
 
   return (
     <ErrorBoundary>
+      <Head>
+        {/* Viewport meta tag for mobile optimization */}
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes" />
+      </Head>
       <QueryClientProvider client={queryClient}>
         <Component {...pageProps} />
       </QueryClientProvider>

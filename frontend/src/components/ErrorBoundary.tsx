@@ -1,8 +1,10 @@
 'use client'
 
-import React, { Component, ReactNode } from 'react'
-import { AlertTriangle, RefreshCw, Home } from 'lucide-react'
+import React, { Component, ReactNode, useState, useCallback } from 'react'
+import { AlertTriangle, RefreshCw, Home, Bug, Send, Copy } from 'lucide-react'
 import { Button } from './ui/Button'
+import { normalizeError, logError, createErrorBoundaryHandler } from '@/utils/errorHandling'
+import { ERROR_MESSAGES } from '@/utils/constants'
 
 interface Props {
   children: ReactNode
@@ -29,15 +31,21 @@ export class ErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     this.setState({ errorInfo })
 
-    // Log error to console in development
-    if (process.env.NODE_ENV === 'development') {
-      console.error('ErrorBoundary caught an error:', error, errorInfo)
-    }
+    // Use our standardized error handling
+    const normalizedError = normalizeError(error, 'ErrorBoundary')
+    logError(normalizedError, {
+      componentStack: errorInfo.componentStack,
+      errorBoundary: true,
+    })
 
-    // Call optional error handler
+    // Call optional error handler with enhanced error info
     if (this.props.onError) {
       this.props.onError(error, errorInfo)
     }
+
+    // Use our error boundary handler utility
+    const errorHandler = createErrorBoundaryHandler('ErrorBoundary')
+    errorHandler(error, errorInfo)
   }
 
   handleRetry = () => {

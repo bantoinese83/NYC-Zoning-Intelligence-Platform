@@ -2,7 +2,9 @@ export interface Landmark {
   id: string
   name: string
   landmark_type: LandmarkType
+  type?: LandmarkType // For compatibility
   distance_ft: number
+  distance?: number // For compatibility
   description?: string
   latitude?: number
   longitude?: number

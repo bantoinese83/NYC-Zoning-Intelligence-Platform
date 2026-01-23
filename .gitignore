@@ -158,3 +158,31 @@ out/
 # OS
 .DS_Store
 Thumbs.db
+
+# NYC Zoning Datasets (Large files - not for version control)
+.playwright-mcp/
+*.csv
+*.xlsx
+*.pdf
+*.gdb/
+*.zip
+*.gz
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Temporary import scripts (keep for reference but don't commit)
+import_*.sql
+complete_data_import.sql
+corrected_data_import.sql
+final_data_import.sql
+import_building_footprints*.sql
+simple_building_import.sql
+test_building_import.sql
+working_building_import.sql
+incremental_building_import.sql
+
+# Python data import scripts
+import_real_nyc_data.py
